@@ -10,9 +10,9 @@ public class MessageTest {
 
     @Before
     public void setUp() {
-        // Test data from Part 2 brief, Message 1
+        // Added "Developer" as the sender to match the new constructor
         message = new Message(0, "+27718693002",
-                "Hi Mike, can you join us for dinner tonight?");
+                "Hi Mike, can you join us for dinner tonight?", "Developer");
     }
 
     @Test
@@ -29,8 +29,9 @@ public class MessageTest {
 
     @Test
     public void testCheckRecipientCellInvalid() {
+        // Added "Developer" as the sender here too
         Message invalid = new Message(0, "08575975889",
-                "Hi Keegan, did you receive the payment?");
+                "Hi Keegan, did you receive the payment?", "Developer");
         assertEquals("Cell phone number is incorrectly formatted or does not contain an international code. Please correct the number and try again.",
                 invalid.checkRecipientCell());
     }
@@ -46,7 +47,8 @@ public class MessageTest {
         for (int i = 0; i < 260; i++) {
             longText.append("a");
         }
-        Message tooLong = new Message(0, "+27718693002", longText.toString());
+        // Added "Developer" as the sender here too
+        Message tooLong = new Message(0, "+27718693002", longText.toString(), "Developer");
         assertEquals("Message exceeds 250 characters by 10; please reduce the size.",
                 tooLong.checkMessageLength());
     }

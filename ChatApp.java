@@ -3,11 +3,14 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
  */
 /*
- * Main class for the ChatApp - handles registration, login and the QuickChat menu.
+ * Main class for the ChatApp.
  */
 package chatapp;
 
+import java.util.ArrayList;
 import java.util.Scanner;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
 public class ChatApp {
 
@@ -17,79 +20,71 @@ public class ChatApp {
     private static String firstName;
     private static String lastName;
 
+    // ARRAYS
+    static ArrayList<String> sentMessages = new ArrayList<>();
+    static ArrayList<String> disregardedMessages = new ArrayList<>();
+    static ArrayList<String> storedMessages = new ArrayList<>();
+    static ArrayList<String> messageHashes = new ArrayList<>();
+    static ArrayList<String> messageIDs = new ArrayList<>();
+
     public static void main(String[] args) {
 
         Scanner input = new Scanner(System.in);
 
-        System.out.println("*Registration*");
+        Message.loadStoredMessages();
 
-        // First name
-        System.out.print("Please enter your first name: ");
+        System.out.println("=====================================");
+        System.out.println("       WELCOME TO CHATAPP            ");
+        System.out.println("=====================================");
+
+        System.out.print("Enter first name: ");
         firstName = input.nextLine();
-
         while (firstName.isEmpty()) {
-            System.out.println("First name cannot be empty");
-            System.out.print("Please enter your first name: ");
+            System.out.print("First name cannot be empty. Try again: ");
             firstName = input.nextLine();
         }
 
-        // Last name
-        System.out.print("Please enter your last name: ");
+        System.out.print("Enter last name: ");
         lastName = input.nextLine();
-
         while (lastName.isEmpty()) {
-            System.out.println("Last name cannot be empty");
-            System.out.print("Please enter your last name: ");
+            System.out.print("Last name cannot be empty. Try again: ");
             lastName = input.nextLine();
         }
 
         Login login = new Login(firstName, lastName);
 
-        // Username
-        System.out.print("Enter your username (less than 5 characters and must contain an underscore): ");
+        System.out.print("Create username (max 5 chars, must contain '_'): ");
         userName = input.nextLine();
-
         while (!login.checkUserName(userName)) {
-            System.out.println("Username is not correctly formatted, please ensure that your username contains an underscore and is no more than five characters in length.");
-            System.out.print("Enter your username (less than 5 characters and must contain an underscore): ");
+            System.out.print("Invalid username. Try again: ");
             userName = input.nextLine();
         }
 
-        // Password
-        System.out.print("Create a password (at least 8 characters, 1 capital letter, 1 number, 1 special character): ");
+        System.out.print("Create password (8+ chars, 1 capital, 1 number, 1 special): ");
         password = input.nextLine();
-
         while (!login.checkPasswordComplexity(password)) {
-            System.out.println("Password is not correctly formatted; please ensure that the password contains at least eight characters, a capital letter, a number, and a special character.");
-            System.out.print("Create a password (at least 8 characters, 1 capital letter, 1 number, 1 special character): ");
+            System.out.print("Invalid password. Try again: ");
             password = input.nextLine();
         }
 
-        // Cell phone
-        System.out.print("Please enter cellphone number with international country code: ");
+        System.out.print("Enter cell number (+27...): ");
         cellPhoneNumber = input.nextLine();
-
         while (!login.checkCellPhoneNumber(cellPhoneNumber)) {
-            System.out.println("Cell phone number incorrectly formatted or does not contain international code, please correct the number and try again");
-            System.out.print("Please enter cellphone number with international country code: ");
+            System.out.print("Invalid cell number. Try again: ");
             cellPhoneNumber = input.nextLine();
         }
 
-        // Register
         String regStatus = login.registerUser(userName, password, cellPhoneNumber, firstName, lastName);
         System.out.println(regStatus);
 
-        // Login
         if (regStatus.equals("Registration successful.")) {
-            System.out.println("*Login*");
-
+            System.out.println("\n--- LOGIN ---");
             boolean loggedIn = false;
 
             while (!loggedIn) {
-                System.out.print("Enter the username you created: ");
+                System.out.print("Username: ");
                 String loginUser = input.nextLine();
-
-                System.out.print("Enter the password you created: ");
+                System.out.print("Password: ");
                 String loginPass = input.nextLine();
 
                 String loginStatus = login.returnLoginStatus(loginUser, loginPass);
@@ -98,72 +93,177 @@ public class ChatApp {
                 if (loginStatus.contains("Welcome")) {
                     loggedIn = true;
                 } else {
-                    System.out.println("Login failed, please try again");
+                    System.out.println("Login failed. Try again.\n");
                 }
             }
 
-            // ----- QuickChat Menu -----
             System.out.println("\nWelcome to QuickChat.");
-
             boolean running = true;
             int messageCounter = 0;
-            Message lastMessage = null;
 
             while (running) {
-                System.out.println("\n1) Send Messages");
-                System.out.println("2) Show recently sent messages");
-                System.out.println("3) Quit");
-                System.out.print("Choose an option: ");
+                // Clean text menu
+                System.out.println("\n--- CHAT MENU ---");
+                System.out.println("1. Send a Message");
+                System.out.println("2. View Sent Messages");
+                System.out.println("3. Quit ChatApp");
+                System.out.println("4. Message Management (Stored)");
+                System.out.print("Select an option: ");
                 int option = Integer.parseInt(input.nextLine());
 
                 switch (option) {
                     case 1:
-                        System.out.print("How many messages do you want to send? ");
+                        System.out.print("How many messages? ");
                         int totalMessages = Integer.parseInt(input.nextLine());
 
                         for (int i = 0; i < totalMessages; i++) {
                             messageCounter++;
-
-                            System.out.print("Enter recipient cell number (with international code): ");
+                            System.out.print("Recipient (+code): ");
                             String recipient = input.nextLine();
-
-                            System.out.print("Enter message (max 250 characters): ");
+                            System.out.print("Message (max 250 chars): ");
                             String text = input.nextLine();
 
-                            Message msg = new Message(messageCounter, recipient, text);
-                            lastMessage = msg;
-
-                            String lengthCheck = msg.checkMessageLength();
-                            System.out.println(lengthCheck);
-
-                            if (lengthCheck.startsWith("Message exceeds")) {
+                            Message msg = new Message(messageCounter, recipient, text, userName);
+                            
+                            if (msg.checkMessageLength().startsWith("Message exceeds")) {
+                                System.out.println(msg.checkMessageLength());
                                 continue;
                             }
 
-                            System.out.println(msg.checkRecipientCell());
-
-                            System.out.println("\n1) Send Message");
-                            System.out.println("2) Disregard Message");
-                            System.out.println("3) Store Message to send later");
-                            System.out.print("Choose: ");
+                            System.out.println("\n1. Send  2. Disregard  3. Store");
+                            System.out.print("Choose action: ");
                             int choice = Integer.parseInt(input.nextLine());
 
                             System.out.println(msg.SentMessage(choice));
+
+                            if (choice == 1) {
+                                sentMessages.add(msg.getMessageText());
+                                messageHashes.add(msg.getMessageHash());
+                                messageIDs.add(msg.getMessageID());
+                            } else if (choice == 2) {
+                                disregardedMessages.add(msg.getMessageText());
+                            } else if (choice == 3) {
+                                storedMessages.add(msg.getMessageText());
+                                messageHashes.add(msg.getMessageHash());
+                                messageIDs.add(msg.getMessageID());
+                            }
+
                             System.out.println("\n" + msg.printMessages());
                         }
-
-                        if (lastMessage != null) {
-                            System.out.println("\nTotal messages: " + lastMessage.returnTotalMessages());
-                        }
+                        System.out.println("Total messages in session: " + new Message(0, "", "", "").returnTotalMessages());
                         break;
 
                     case 2:
-                        System.out.println("Coming Soon.");
+                        System.out.println("\n--- SENT MESSAGES ---");
+                        if (sentMessages.isEmpty()) {
+                            System.out.println("Inbox is empty.");
+                        } else {
+                            for (int i = 0; i < sentMessages.size(); i++) {
+                                System.out.println((i + 1) + ". " + sentMessages.get(i));
+                            }
+                        }
                         break;
 
                     case 3:
-                        System.out.println("Goodbye.");
+                        System.out.println("Logging out... Goodbye!");
                         running = false;
+                        break;
+
+                    case 4:
+                        JSONArray storedJSON = Message.getStoredMessagesJSON();
+                        if (storedJSON.isEmpty()) {
+                            System.out.println("No stored messages in database.");
+                            break;
+                        }
+
+                        // Distinct Sub-menu for ChatApp
+                        System.out.println("\n--- MESSAGE MANAGEMENT ---");
+                        System.out.println("A. View Senders & Recipients");
+                        System.out.println("B. Find Longest Message");
+                        System.out.println("C. Search by Message ID");
+                        System.out.println("D. Search by Recipient");
+                        System.out.println("E. Delete by Hash");
+                        System.out.println("F. Generate Full Report");
+                        System.out.print("Enter selection: ");
+                        String subOption = input.nextLine();
+
+                        switch (subOption.toUpperCase()) { 
+                            case "A":
+                                for (Object obj : storedJSON) {
+                                    JSONObject m = (JSONObject) obj;
+                                    System.out.println("From: " + m.get("sender") + " | To: " + m.get("recipient"));
+                                }
+                                break;
+                            case "B":
+                                String longest = "";
+                                for (Object obj : storedJSON) {
+                                    JSONObject m = (JSONObject) obj;
+                                    String text = (String) m.get("message");
+                                    if (text.length() > longest.length()) {
+                                        longest = text;
+                                    }
+                                }
+                                System.out.println("Longest text found: " + longest);
+                                break;
+                            case "C":
+                                System.out.print("Enter ID: ");
+                                String searchID = input.nextLine();
+                                boolean foundID = false;
+                                for (Object obj : storedJSON) {
+                                    JSONObject m = (JSONObject) obj;
+                                    if (m.get("messageID").equals(searchID)) {
+                                        System.out.println("To: " + m.get("recipient") + "\nText: " + m.get("message"));
+                                        foundID = true;
+                                        break;
+                                    }
+                                }
+                                if (!foundID) System.out.println("ID not found.");
+                                break;
+                            case "D":
+                                System.out.print("Enter Recipient Number: ");
+                                String searchRecipient = input.nextLine();
+                                boolean foundRecipient = false;
+                                for (Object obj : storedJSON) {
+                                    JSONObject m = (JSONObject) obj;
+                                    if (m.get("recipient").equals(searchRecipient)) {
+                                        System.out.println("Text: " + m.get("message"));
+                                        foundRecipient = true;
+                                    }
+                                }
+                                if (!foundRecipient) System.out.println("No messages for this number.");
+                                break;
+                            case "E":
+                                System.out.print("Enter Hash to delete: ");
+                                String searchHash = input.nextLine();
+                                boolean deleted = false;
+                                for (int i = 0; i < storedJSON.size(); i++) {
+                                    JSONObject m = (JSONObject) storedJSON.get(i);
+                                    if (m.get("messageHash").equals(searchHash)) {
+                                        storedJSON.remove(i);
+                                        try (java.io.FileWriter file = new java.io.FileWriter("messages.json")) {
+                                            file.write(storedJSON.toJSONString());
+                                        } catch (Exception e) {
+                                            System.out.println("Error saving file.");
+                                        }
+                                        System.out.println("Deleted message: \"" + m.get("message") + "\"");
+                                        deleted = true;
+                                        break;
+                                    }
+                                }
+                                if (!deleted) System.out.println("Hash not found.");
+                                break;
+                            case "F":
+                                System.out.println("\n--- FULL REPORT ---");
+                                for (Object obj : storedJSON) {
+                                    JSONObject m = (JSONObject) obj;
+                                    System.out.println("Hash: " + m.get("messageHash") + 
+                                                       "\nTo: " + m.get("recipient") + 
+                                                       "\nText: " + m.get("message") + "\n-------------------");
+                                }
+                                break;
+                            default:
+                                System.out.println("Invalid selection.");
+                        }
                         break;
 
                     default:

@@ -7,11 +7,13 @@
  */
 package chatapp;
 
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Random;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 public class Message {
 
@@ -20,50 +22,35 @@ public class Message {
     private String recipient;
     private String messageText;
     private String messageHash;
+    private String sender;
 
-    private static JSONArray storedMessages = new JSONArray();
+    private static JSONArray storedMessagesJSON = new JSONArray();
 
-    public Message(int messageNumber, String recipient, String messageText) {
+    public Message(int messageNumber, String recipient, String messageText, String sender) {
         this.messageNumber = messageNumber;
         this.recipient = recipient;
         this.messageText = messageText;
+        this.sender = sender;
         this.messageID = generateMessageID();
         this.messageHash = createMessageHash();
     }
 
-    // Randomly generates a ten-digit number as the message ID
     private String generateMessageID() {
         Random rand = new Random();
         long number = 1000000000L + (long) (rand.nextDouble() * 9000000000L);
         return String.valueOf(number);
     }
 
-    public String getMessageID() {
-        return messageID;
-    }
+    public String getMessageID() { return messageID; }
+    public String getMessageHash() { return messageHash; }
+    public String getRecipient() { return recipient; }
+    public String getMessageText() { return messageText; }
+    public String getSender() { return sender; }
 
-    public String getMessageHash() {
-        return messageHash;
-    }
-
-    public String getRecipient() {
-        return recipient;
-    }
-
-    public String getMessageText() {
-        return messageText;
-    }
-
-    public int getMessageNumber() {
-        return messageNumber;
-    }
-
-    // Checks that the ID is not more than ten characters
     public boolean checkMessageID() {
         return messageID.length() <= 10;
     }
 
-    // Checks that the recipient cell number is valid
     public String checkRecipientCell() {
         String regex = "^\\+\\d{11,13}$";
         if (recipient.matches(regex)) {
@@ -72,7 +59,6 @@ public class Message {
         return "Cell phone number is incorrectly formatted or does not contain an international code. Please correct the number and try again.";
     }
 
-    // Creates the message hash: first two digits of ID : message number : FIRST+LAST word, uppercase
     public String createMessageHash() {
         String firstTwo = messageID.substring(0, 2);
         String[] words = messageText.trim().split("\\s+");
@@ -81,7 +67,6 @@ public class Message {
         return (firstTwo + ":" + messageNumber + ":" + firstWord + lastWord).toUpperCase();
     }
 
-    // Checks that the message is no more than 250 characters
     public String checkMessageLength() {
         if (messageText.length() <= 250) {
             return "Message ready to send.";
@@ -90,7 +75,6 @@ public class Message {
         return "Message exceeds 250 characters by " + excess + "; please reduce the size.";
     }
 
-    // Allows the user to send, store or disregard the message
     public String SentMessage(int choice) {
         switch (choice) {
             case 1:
@@ -106,29 +90,35 @@ public class Message {
         }
     }
 
-    // JSON handling adapted from:
-    // json-simple. 2012. json-simple - A simple Java toolkit for JSON. [Source code].
-    // Available at: https://github.com/fangyidong/json-simple
-    // [Accessed 12 October 2026].
+    public static void loadStoredMessages() {
+        JSONParser parser = new JSONParser();
+        try (FileReader reader = new FileReader("messages.json")) {
+            Object obj = parser.parse(reader);
+            storedMessagesJSON = (JSONArray) obj;
+        } catch (Exception e) {
+            storedMessagesJSON = new JSONArray();
+        }
+    }
+
     public void storeMessage() {
         JSONObject json = new JSONObject();
         json.put("messageID", messageID);
         json.put("messageNumber", messageNumber);
+        json.put("sender", sender);
         json.put("recipient", recipient);
         json.put("message", messageText);
         json.put("messageHash", messageHash);
 
-        storedMessages.add(json);
+        storedMessagesJSON.add(json);
 
         try (FileWriter file = new FileWriter("messages.json")) {
-            file.write(storedMessages.toJSONString());
+            file.write(storedMessagesJSON.toJSONString());
             file.flush();
         } catch (IOException e) {
             System.out.println("Could not save message: " + e.getMessage());
         }
     }
 
-    // Prints the details of this message
     public String printMessages() {
         return "Message ID: " + messageID
                 + "\nMessage Hash: " + messageHash
@@ -136,8 +126,11 @@ public class Message {
                 + "\nMessage: " + messageText;
     }
 
-    // Returns how many messages are stored
     public int returnTotalMessages() {
-        return storedMessages.size();
+        return storedMessagesJSON.size();
+    }
+    
+    public static JSONArray getStoredMessagesJSON() {
+        return storedMessagesJSON;
     }
 }
